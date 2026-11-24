@@ -1,0 +1,15 @@
+{
+ "doctype": "Page",
+ "name": "doctor-dashboard",
+ "page_name": "doctor-dashboard",
+ "title": "Doctor Dashboard",
+ "module": "Qdynamics Hms Dashboards",
+ "standard": "Yes",
+ "system_page": 0,
+ "icon": "stethoscope",
+ "roles": [
+  {
+   "role": "Physician"
+  }
+ ]
+}

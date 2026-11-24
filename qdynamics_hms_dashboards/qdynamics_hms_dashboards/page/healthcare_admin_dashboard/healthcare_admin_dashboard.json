@@ -1,0 +1,18 @@
+{
+ "doctype": "Page",
+ "name": "healthcare-admin-dashboard",
+ "page_name": "healthcare-admin-dashboard",
+ "title": "Healthcare Admin Dashboard",
+ "module": "Qdynamics Hms Dashboards",
+ "standard": "Yes",
+ "system_page": 0,
+ "icon": "heart",
+ "roles": [
+  {
+   "role": "Healthcare Administrator"
+  },
+  {
+   "role": "System Manager"
+  }
+ ]
+}

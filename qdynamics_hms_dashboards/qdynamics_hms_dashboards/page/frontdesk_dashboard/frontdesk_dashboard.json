@@ -1,0 +1,21 @@
+{
+ "doctype": "Page",
+ "name": "frontdesk-dashboard",
+ "page_name": "frontdesk-dashboard",
+ "title": "Front Desk Dashboard",
+ "module": "Qdynamics Hms Dashboards",
+ "standard": "Yes",
+ "system_page": 0,
+ "icon": "user-check",
+ "roles": [
+  {
+   "role": "Frontdesk"
+  },
+  {
+   "role": "Healthcare Administrator"
+  },
+  {
+   "role": "System Manager"
+  }
+ ]
+}
