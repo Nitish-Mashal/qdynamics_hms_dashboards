@@ -1,12 +1,11 @@
 import frappe
 from frappe import _
 from frappe.query_builder.functions import Count
-from frappe.utils import get_first_day, getdate, nowdate
+from frappe.utils import get_datetime, get_first_day, getdate, nowdate
 
 
-DOCTOR_ROLES = {"Physician"}
+DOCTOR_ROLES = {"Doctor"}
 ACTIVE_APPOINTMENT_STATUSES = ["Scheduled", "Open", "Confirmed", "Checked In"]
-ACTIVE_ENCOUNTER_STATUSES = ["Open", "Ordered"]
 
 
 def _require_dashboard_access():
@@ -97,7 +96,12 @@ def get_dashboard(start_date=None, end_date=None):
 	_require_dashboard_access()
 	practitioner = _get_practitioner()
 	start, end = _normalize_dates(start_date, end_date)
+	today = getdate(nowdate())
 	date_filter = ["between", [start, end]]
+	today_datetime_filter = [
+		"between",
+		[get_datetime(f"{today} 00:00:00"), get_datetime(f"{today} 23:59:59")],
+	]
 	appointment_filters = {
 		"practitioner": practitioner.name,
 		"appointment_date": date_filter,
@@ -113,14 +117,10 @@ def get_dashboard(start_date=None, end_date=None):
 		"date": date_filter,
 		"status": ["not in", ["Cancelled", "Rejected"]],
 	}
-	open_encounter_filters = {
-		**encounter_filters,
-		"status": ["in", ACTIVE_ENCOUNTER_STATUSES],
-	}
 	appointment_count = _count("Patient Appointment", appointment_filters)
 	encounter_count = _count("Patient Encounter", encounter_filters)
 	lab_test_count = _count("Lab Test", lab_test_filters)
-	open_encounter_count = _count("Patient Encounter", open_encounter_filters)
+	patient_count = _count("Patient", {"creation": today_datetime_filter})
 
 	return {
 		"dateRange": {"startDate": start.isoformat(), "endDate": end.isoformat()},
@@ -133,7 +133,7 @@ def get_dashboard(start_date=None, end_date=None):
 			"appointments": appointment_count,
 			"encounters": encounter_count,
 			"labTests": lab_test_count,
-			"openEncounters": open_encounter_count,
+			"patientDirectory": patient_count,
 		},
 		"operations": {
 			"appointments": {

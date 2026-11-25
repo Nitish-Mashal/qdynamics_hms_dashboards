@@ -10,12 +10,6 @@
  "roles": [
   {
    "role": "Frontdesk"
-  },
-  {
-   "role": "Healthcare Administrator"
-  },
-  {
-   "role": "System Manager"
   }
  ]
 }

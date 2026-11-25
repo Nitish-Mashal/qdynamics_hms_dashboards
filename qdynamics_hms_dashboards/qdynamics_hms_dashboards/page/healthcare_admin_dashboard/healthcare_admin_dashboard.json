@@ -9,10 +9,7 @@
  "icon": "heart",
  "roles": [
   {
-   "role": "Healthcare Administrator"
-  },
-  {
-   "role": "System Manager"
+   "role": "Admin"
   }
  ]
 }

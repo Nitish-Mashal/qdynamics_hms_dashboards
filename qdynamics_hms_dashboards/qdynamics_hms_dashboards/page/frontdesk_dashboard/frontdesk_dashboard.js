@@ -58,12 +58,14 @@ class FrontdeskDashboard {
 			.fd-kpi:nth-child(3) .fd-kpi-icon { color:#3e9a8b; background:#edf8f5; }
 			.fd-kpi:nth-child(4) .fd-kpi-icon { color:#d28742; background:#fff5e9; }
 			.fd-panel { padding:19px; margin-bottom:18px; }
-			.fd-operations { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+			.fd-operations { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; align-items:stretch; }
 			.fd-section-heading { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:15px; }
 			.fd-section-heading h2 { margin:0; font-size:14px; font-weight:730; }
 			.fd-section-heading span { color:#8a8799; font-size:10px; }
 			.fd-operation-count { color:#716e81; font-size:11px; font-weight:700; }
-			.fd-operation-list { display:grid; gap:8px; }
+			.fd-operations > .fd-card { height:330px; min-height:330px; margin-bottom:0; }
+			.fd-operation-panel { display:flex; flex-direction:column; }
+			.fd-operation-list { display:grid; grid-auto-rows:min-content; flex:1; min-height:0; gap:8px; align-content:start; overflow-y:auto; padding-right:4px; }
 			.fd-operation { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:8px 12px; min-height:62px; padding:10px 12px; border:1px solid #f0eef4; border-radius:10px; background:#fff; color:inherit; text-align:left; cursor:pointer; }
 			.fd-operation:hover { border-color:#d9d2ec; background:#fcfbfe; }
 			.fd-operation-copy { min-width:0; }
@@ -75,11 +77,12 @@ class FrontdeskDashboard {
 			.fd-status.draft,.fd-status.admission-scheduled { color:#695b9d; background:#f2effa; }
 			.fd-message { display:grid; place-items:center; min-height:120px; color:#8a8799; font-size:12px; text-align:center; }
 			.fd-status-message { margin:0 0 14px; color:#bd547a; font-size:12px; }
-			.fd-quick-actions { display:flex; flex-wrap:wrap; gap:9px; }
-			.fd-action { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:40px; padding:0 13px; border:1px solid transparent; border-radius:9px; color:#51448f; background:linear-gradient(105deg,rgba(69,61,137,.09),rgba(200,73,154,.10)) padding-box,linear-gradient(105deg,rgba(69,61,137,.30),rgba(200,73,154,.32)) border-box; box-shadow:0 3px 10px rgba(69,61,137,.08); font-size:11px; font-weight:650; text-decoration:none!important; cursor:pointer; transition:transform .16s,box-shadow .16s; }
+			.fd-quick-actions { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:9px; }
+			.fd-action { display:flex; align-items:center; justify-content:flex-start; width:100%; min-width:0; gap:8px; min-height:48px; padding:8px 10px; border:1px solid transparent; border-radius:9px; color:#51448f; background:linear-gradient(105deg,rgba(69,61,137,.09),rgba(200,73,154,.10)) padding-box,linear-gradient(105deg,rgba(69,61,137,.30),rgba(200,73,154,.32)) border-box; box-shadow:0 3px 10px rgba(69,61,137,.08); font-size:11px; font-weight:650; text-align:left; text-decoration:none!important; cursor:pointer; transition:transform .16s,box-shadow .16s; }
+			.fd-action span { min-width:0; overflow-wrap:anywhere; }
 			.fd-action:hover { transform:translateY(-1px); color:#453D89; box-shadow:0 6px 15px rgba(119,70,153,.15); }
 			.fd-action-primary { color:#51448f; }
-			.fd-action svg { color:inherit; }
+			.fd-action svg { flex:0 0 18px; color:inherit; }
 			@media(max-width:980px) { .fd-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 			@media(max-width:650px) {
 				.hms-frontdesk { padding:15px 12px 26px; }
@@ -127,31 +130,36 @@ class FrontdeskDashboard {
 					${this.kpi("appointments", __("Appointments Created Today"), "patient-appointment", "calendar", __("Created today"))}
 					${this.kpi("pendingCheckIns", __("Lab Test"), "lab-test", "clock", __("Lab Tests in selected period"))}
 					${this.kpi("checkedIn", __("IPD"), "inpatient-record", "check", __("Inpatient Records in selected period"))}
-					${this.kpi("newPatients", __("New Patients"), "patient", "patient", __("Registered in selected period"))}
+					${this.kpi("bills", __("Paid Bill Value"), "sales-invoice", "receipt", __("Paid amount in selected date range"))}
 				</section>
 				<div class="fd-operations">
-					<section class="fd-card fd-panel">
+					<section class="fd-card fd-panel fd-operation-panel">
+						<div class="fd-section-heading"><h2>${__("Pending Appointments")}</h2><span class="fd-operation-count" data-operation-count="pendingAppointments">—</span></div>
+						<div class="fd-operation-list" data-operation-list="pendingAppointments"><div class="fd-message">${__("Loading appointments...")}</div></div>
+					</section>
+					<section class="fd-card fd-panel fd-operation-panel">
 						<div class="fd-section-heading"><h2>${__("Lab Test Follow-up")}</h2><span class="fd-operation-count" data-operation-count="labTests">—</span></div>
 						<div class="fd-operation-list" data-operation-list="labTests"><div class="fd-message">${__("Loading lab tests...")}</div></div>
 					</section>
-					<section class="fd-card fd-panel">
+					<section class="fd-card fd-panel fd-operation-panel">
 						<div class="fd-section-heading"><h2>${__("Inpatient Activity")}</h2><span class="fd-operation-count" data-operation-count="inpatients">—</span></div>
 						<div class="fd-operation-list" data-operation-list="inpatients"><div class="fd-message">${__("Loading inpatient records...")}</div></div>
 					</section>
+					<section class="fd-card fd-panel">
+						<div class="fd-section-heading"><h2>${__("Quick Actions")}</h2><span>${__("Common reception tasks")}</span></div>
+						<div class="fd-quick-actions">
+						${this.createAction("Sales Invoice", __("Create Invoice"), "receipt")}
+							${this.createAction("Patient", __("Register Patient"), "patient")}
+							${this.createAction("Patient Appointment", __("Book Appointment"), "calendar")}
+							${this.createAction("Lab Test", __("Create Lab Test"), "flask")}
+							${this.createAction("Inpatient Record", __("Create Inpatient Record"), "bed")}
+							<a class="fd-action" href="/desk/patient" data-route="patient">${this.icon("patient")}<span>${__("Patient Directory")}</span></a>
+							<a class="fd-action" href="/desk/patient-appointment" data-route="patient-appointment">${this.icon("calendar")}<span>${__("All Appointments")}</span></a>
+							<a class="fd-action" href="/desk/lab-test" data-route="lab-test">${this.icon("flask")}<span>${__("Lab Tests")}</span></a>
+							<a class="fd-action" href="/desk/inpatient-record" data-route="inpatient-record">${this.icon("bed")}<span>${__("Inpatient Records")}</span></a>
+						</div>
+					</section>
 				</div>
-				<section class="fd-card fd-panel">
-					<div class="fd-section-heading"><h2>${__("Quick Actions")}</h2><span>${__("Common reception tasks")}</span></div>
-					<div class="fd-quick-actions">
-						${this.createAction("Patient", __("Register Patient"), "patient")}
-						${this.createAction("Patient Appointment", __("Book Appointment"), "calendar")}
-						${this.createAction("Lab Test", __("Create Lab Test"), "flask")}
-						${this.createAction("Inpatient Record", __("Create Inpatient Record"), "bed")}
-						<a class="fd-action" href="/desk/patient" data-route="patient">${this.icon("patient")}<span>${__("Patient Directory")}</span></a>
-						<a class="fd-action" href="/desk/patient-appointment" data-route="patient-appointment">${this.icon("calendar")}<span>${__("All Appointments")}</span></a>
-						<a class="fd-action" href="/desk/lab-test" data-route="lab-test">${this.icon("flask")}<span>${__("Lab Tests")}</span></a>
-						<a class="fd-action" href="/desk/inpatient-record" data-route="inpatient-record">${this.icon("bed")}<span>${__("Inpatient Records")}</span></a>
-					</div>
-				</section>
 			</div>
 		`);
 		this.setGreeting();
@@ -175,6 +183,7 @@ class FrontdeskDashboard {
 			calendar: '<rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M16 3v4M8 3v4M3 10h18"></path>',
 			clock: '<circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path>',
 			check: '<path d="m5 12 4 4L19 6"></path>',
+			receipt: '<path d="M5 3h14v18l-3-2-4 2-4-2-3 2z"></path><path d="M8 8h8M8 12h8M8 16h4"></path>',
 			patient: '<circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0M12 14v5M9.5 16.5h5"></path>',
 			flask: '<path d="M9 3h6M10 3v7L4 20a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1l-6-10V3"></path><path d="M7 16h10"></path>',
 			bed: '<path d="M3 7v14M3 17h18v4M3 12h18v5M7 12V8h5a3 3 0 0 1 3 3v1"></path><path d="M15 12V9h3a3 3 0 0 1 3 3"></path>',
@@ -273,7 +282,7 @@ class FrontdeskDashboard {
 	setGreeting() {
 		const hour = new Date().getHours();
 		const greeting = hour < 12 ? __("Good Morning") : hour < 18 ? __("Good Afternoon") : __("Good Evening");
-		const name = frappe.boot?.user?.full_name || frappe.session?.user || __("there");
+		const name = frappe.boot?.user?.first_name || __("there");
 		this.page.main.find(".fd-greeting-title").text(`${greeting}, ${name}!`);
 	}
 
@@ -299,7 +308,9 @@ class FrontdeskDashboard {
 			`${frappe.datetime.str_to_user(data.dateRange.startDate)} – ${frappe.datetime.str_to_user(data.dateRange.endDate)}`
 		);
 		for (const [key, metric] of Object.entries(data.kpis || {})) {
-			this.page.main.find(`[data-kpi="${key}"]`).text(metric.restricted ? __("No access") : metric.value ?? "—");
+			const displayValue =
+				key === "bills" ? format_currency(Number(metric.value) || 0) : metric.value ?? "—";
+			this.page.main.find(`[data-kpi="${key}"]`).text(metric.restricted ? __("No access") : displayValue);
 			if (metric.restricted) {
 				this.page.main.find(`[data-kpi-note="${key}"]`).text(__("Permission required"));
 			}
@@ -308,6 +319,11 @@ class FrontdeskDashboard {
 	}
 
 	renderOperations(operations) {
+		this.renderOperationList("pendingAppointments", operations.pendingAppointments, "Patient Appointment", (record) => ({
+			title: record.patient_name || __("Patient not listed"),
+			subtitle: [frappe.datetime.str_to_user(record.appointment_date), record.appointment_time].filter(Boolean).join(" · "),
+			detail: __("Encounter not created"),
+		}), __("No pending appointments in this date range."));
 		this.renderOperationList("labTests", operations.labTests, "Lab Test", (record) => ({
 			title: record.lab_test_name || __("Laboratory Test"),
 			subtitle: record.patient_name || __("Patient not listed"),
@@ -324,7 +340,7 @@ class FrontdeskDashboard {
 		}));
 	}
 
-	renderOperationList(key, operation, doctype, getContent) {
+	renderOperationList(key, operation, doctype, getContent, emptyMessage = __("No records need follow-up.")) {
 		const $list = this.page.main.find(`[data-operation-list="${key}"]`).empty();
 		const count = operation?.count;
 		this.page.main.find(`[data-operation-count="${key}"]`).text(
@@ -335,7 +351,7 @@ class FrontdeskDashboard {
 			return;
 		}
 		if (!operation.items.length) {
-			$list.html(`<div class="fd-message">${__("No records need follow-up.")}</div>`);
+			$list.html(`<div class="fd-message">${emptyMessage}</div>`);
 			return;
 		}
 

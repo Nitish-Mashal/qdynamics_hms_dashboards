@@ -1,10 +1,10 @@
 import frappe
 from frappe import _
-from frappe.query_builder.functions import Count, Date
+from frappe.query_builder.functions import Count, Date, Sum
 from frappe.utils import get_datetime, get_first_day, getdate, nowdate
 
 
-ADMIN_ROLES = {"Healthcare Administrator", "System Manager"}
+ADMIN_ROLES = {"Admin"}
 
 
 def _require_dashboard_access():
@@ -50,6 +50,38 @@ def _count(doctype, filters):
 		ignore_permissions=False,
 	).run(as_dict=True)
 	return {"value": rows[0].count if rows else 0, "restricted": False}
+
+
+def _sum(doctype, fieldname, filters):
+	if not _can_read(doctype):
+		return {"value": None, "restricted": True}
+
+	table = frappe.qb.DocType(doctype)
+	field = getattr(table, fieldname)
+	rows = frappe.qb.get_query(
+		doctype,
+		fields=[Sum(field).as_("total")],
+		filters=filters,
+		ignore_permissions=False,
+	).run(as_dict=True)
+	total = rows[0].total if rows and rows[0].total is not None else 0
+	return {"value": float(total), "restricted": False}
+
+
+def _get_paid_invoice_value(filters):
+	if not _can_read("Sales Invoice"):
+		return {"value": None, "restricted": True}
+
+	invoice = frappe.qb.DocType("Sales Invoice")
+	paid_value = invoice.grand_total - invoice.outstanding_amount
+	rows = frappe.qb.get_query(
+		"Sales Invoice",
+		fields=[Sum(paid_value).as_("total")],
+		filters=filters,
+		ignore_permissions=False,
+	).run(as_dict=True)
+	total = rows[0].total if rows and rows[0].total is not None else 0
+	return {"value": float(total), "restricted": False}
 
 
 def _get_rows(doctype, fields, filters, *, limit=5, order_by=None):
@@ -187,9 +219,8 @@ def get_dashboard(start_date=None, end_date=None):
 					"status": ["not in", ["Cancelled", "Rejected"]],
 				},
 			),
-			"bills": _count(
-				"Sales Invoice",
-				{"posting_date": ["between", [start, end]], "docstatus": 1, "is_return": 0},
+			"bills": _get_paid_invoice_value(
+				{"posting_date": ["between", [start, end]], "docstatus": 1, "is_return": 0}
 			),
 		},
 		"patientFootfall": _get_patient_footfall(start, end),

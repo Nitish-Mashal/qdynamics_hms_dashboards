@@ -62,7 +62,9 @@ class DoctorDashboard {
 			.doctor-panel-heading { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:15px; }
 			.doctor-panel-heading h2 { margin:0; font-size:14px; font-weight:730; }
 			.doctor-panel-count { color:#8a8799; font-size:11px; font-weight:650; }
-			.doctor-list { display:grid; gap:8px; }
+			.doctor-panels > .doctor-card { height:330px; min-height:330px; }
+			.doctor-panels > .doctor-card:not(:last-child) { display:flex; flex-direction:column; }
+			.doctor-list { display:grid; grid-auto-rows:min-content; flex:1; min-height:0; gap:8px; align-content:start; overflow-y:auto; padding-right:4px; }
 			.doctor-item { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:8px 12px; min-height:62px; padding:10px 12px; border:1px solid #f0eef4; border-radius:10px; background:#fff; color:inherit; text-align:left; cursor:pointer; }
 			.doctor-item:hover { border-color:#d9d2ec; background:#fcfbfe; }
 			.doctor-item-copy { min-width:0; }
@@ -72,14 +74,21 @@ class DoctorDashboard {
 			.doctor-status.completed,.doctor-status.approved,.doctor-status.checked-in { color:#348b74; background:#edf8f4; }
 			.doctor-status.cancelled,.doctor-status.rejected,.doctor-status.no-show { color:#bd547a; background:#fcf0f5; }
 			.doctor-empty,.doctor-loading { display:grid; place-items:center; min-height:130px; color:#8a8799; font-size:12px; text-align:center; }
-			.doctor-actions { display:flex; flex-wrap:wrap; gap:9px; }
-			.doctor-action { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:40px; padding:0 13px; border:1px solid transparent; border-radius:9px; color:#51448f; background:linear-gradient(105deg,rgba(69,61,137,.09),rgba(200,73,154,.10)) padding-box,linear-gradient(105deg,rgba(69,61,137,.30),rgba(200,73,154,.32)) border-box; box-shadow:0 3px 10px rgba(69,61,137,.08); font-size:11px; font-weight:650; text-decoration:none!important; cursor:pointer; }
-			.doctor-action:hover { color:#453D89; box-shadow:0 6px 15px rgba(119,70,153,.15); }
-			.doctor-action svg { color:inherit; }
+			.doctor-actions { display:grid; grid-auto-rows:min-content; gap:9px; align-content:start; }
+			.doctor-action { display:flex; align-items:center; width:100%; gap:11px; min-height:56px; padding:10px 12px; border:1px solid transparent; border-radius:10px; color:#51448f; background:linear-gradient(105deg,rgba(69,61,137,.09),rgba(200,73,154,.10)) padding-box,linear-gradient(105deg,rgba(69,61,137,.30),rgba(200,73,154,.32)) border-box; box-shadow:0 3px 10px rgba(69,61,137,.08); font-family:inherit; text-align:left; text-decoration:none!important; cursor:pointer; transition:transform .16s,box-shadow .16s; }
+			.doctor-action:hover { transform:translateY(-1px); color:#453D89; box-shadow:0 6px 15px rgba(119,70,153,.15); }
+			.doctor-action:hover .doctor-action-copy strong { color:#453D89; }
+			.doctor-action:focus-visible { outline:2px solid #685ba5; outline-offset:2px; }
+			.doctor-action-mark { display:grid; place-items:center; flex:0 0 30px; height:30px; border-radius:9px; color:#51448f; background:linear-gradient(105deg,rgba(69,61,137,.09),rgba(200,73,154,.10)); }
+			.doctor-action-mark svg { width:16px; height:16px; }
+			.doctor-action-copy { flex:1; min-width:0; }
+			.doctor-action-copy strong { display:block; margin-bottom:3px; font-size:11px; }
+			.doctor-action-copy small { display:block; overflow:hidden; font-size:10px; text-overflow:ellipsis; white-space:nowrap; }
+			.doctor-action-cta { color:#51448f; font-size:10px; font-weight:700; white-space:nowrap; }
 			.doctor-profile { margin-top:4px!important; }
 			.doctor-status-message { margin:0 0 14px; color:#bd547a; font-size:12px; }
 			@media(max-width:980px) { .doctor-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); } .doctor-presets { margin-left:0; } }
-			@media(max-width:700px) { .doctor-dashboard { padding:15px 12px 26px; } .page-head .doctor-page-header { display:grid!important; grid-template-columns:minmax(15px,1fr) minmax(0,min(460px,calc(100% - 30px))) minmax(15px,1fr); } .doctor-intro { align-items:flex-start; flex-direction:column; gap:9px; } .doctor-intro h1 { font-size:21px; } .doctor-filter-row { align-items:stretch; } .doctor-filter-row label { flex:1 1 calc(50% - 8px); } .doctor-filter-row input { width:100%; min-width:0; } .doctor-filter-row>.doctor-filter-button { flex:1; } .doctor-presets { flex-basis:100%; } .doctor-kpis { gap:9px; } .doctor-kpi { min-height:112px; padding:13px; } .doctor-kpi-label { font-size:11px; } .doctor-kpi-value { font-size:23px; } .doctor-kpi-icon { width:33px; height:33px; } .doctor-panels { grid-template-columns:1fr; gap:11px; } .doctor-card { padding:15px; } .doctor-action { flex:1 1 calc(50% - 8px); } }
+			@media(max-width:700px) { .doctor-dashboard { padding:15px 12px 26px; } .page-head .doctor-page-header { display:grid!important; grid-template-columns:minmax(15px,1fr) minmax(0,min(460px,calc(100% - 30px))) minmax(15px,1fr); } .doctor-intro { align-items:flex-start; flex-direction:column; gap:9px; } .doctor-intro h1 { font-size:21px; } .doctor-filter-row { align-items:stretch; } .doctor-filter-row label { flex:1 1 calc(50% - 8px); } .doctor-filter-row input { width:100%; min-width:0; } .doctor-filter-row>.doctor-filter-button { flex:1; } .doctor-presets { flex-basis:100%; } .doctor-kpis { gap:9px; } .doctor-kpi { min-height:112px; padding:13px; } .doctor-kpi-label { font-size:11px; } .doctor-kpi-value { font-size:23px; } .doctor-kpi-icon { width:33px; height:33px; } .doctor-panels { grid-template-columns:1fr; gap:11px; } .doctor-card { padding:15px; } }
 			@media(max-width:380px) { .doctor-kpis { grid-template-columns:1fr; } }
 		`;
 		document.head.appendChild(style);
@@ -107,20 +116,20 @@ class DoctorDashboard {
 				<section class="doctor-kpis" aria-label="${__("My clinical summary")}">
 					${this.kpi("appointments", __("My Appointments"), "patient-appointment", "calendar")}
 					${this.kpi("encounters", __("Patient Encounters"), "patient-encounter", "patient")}
-					${this.kpi("labTests", __("My Lab Tests"), "lab-test", "flask")}
-					${this.kpi("openEncounters", __("Open Encounters"), "patient-encounter", "clock")}
+					${this.kpi("labTests", __("Lab Test Results"), "lab-test", "flask")}
+					${this.kpi("patientDirectory", __("Patient Directory"), "patient", "patient", __("Created today"))}
 				</section>
 				<div class="doctor-panels">
 					${this.panel("appointments", __("My Appointments"))}
 					${this.panel("encounters", __("My Patient Encounters"))}
-					${this.panel("labTests", __("My Lab Tests"))}
+					${this.panel("labTests", __("Lab Test Results"))}
 					<section class="doctor-card">
-						<div class="doctor-panel-heading"><h2>${__("Quick Actions")}</h2></div>
+						<div class="doctor-panel-heading"><h2>${__("Quick Actions")}</h2><span class="doctor-panel-count">${__("Common clinical tasks")}</span></div>
 						<div class="doctor-actions">
-							${this.createAction("Patient Encounter", __("New Encounter"), "patient")}
-							${this.createAction("Patient Appointment", __("New Appointment"), "calendar")}
-							${this.createAction("Patient", __("Register Patient"), "patient")}
-							<a class="doctor-action" href="/desk/patient" data-route="patient">${this.icon("patient")}<span>${__("Patient Directory")}</span></a>
+							${this.createAction("Patient Encounter", __("New Encounter"), "patient", __("Create a patient encounter"))}
+							${this.createAction("Patient Appointment", __("New Appointment"), "calendar", __("Schedule a patient appointment"))}
+							${this.createAction("Patient", __("Register Patient"), "patient", __("Add a new patient record"))}
+							${this.actionLink("healthcare/patient_history", __("Patient History"), "patient", __("View patient history"))}
 						</div>
 					</section>
 				</div>
@@ -129,9 +138,9 @@ class DoctorDashboard {
 		this.setGreeting();
 	}
 
-	kpi(key, label, route, icon) {
+	kpi(key, label, route, icon, note = __("Selected date range")) {
 		return `<a class="doctor-card doctor-kpi" href="/desk/${route}" data-route="${route}">
-			<div><div class="doctor-kpi-label">${label}</div><div class="doctor-kpi-value" data-kpi="${key}">—</div><div class="doctor-kpi-note">${__("Selected date range")}</div></div>
+			<div><div class="doctor-kpi-label">${label}</div><div class="doctor-kpi-value" data-kpi="${key}">—</div><div class="doctor-kpi-note">${note}</div></div>
 			<span class="doctor-kpi-icon">${this.icon(icon)}</span>
 		</a>`;
 	}
@@ -143,9 +152,21 @@ class DoctorDashboard {
 		</section>`;
 	}
 
-	createAction(doctype, label, icon) {
+	createAction(doctype, label, icon, description) {
 		if (!frappe.model.can_create(doctype)) return "";
-		return `<button type="button" class="doctor-action" data-create-doctype="${doctype}">${this.icon(icon)}<span>${label}</span></button>`;
+		return `<button type="button" class="doctor-action" data-create-doctype="${doctype}">
+			<span class="doctor-action-mark">${this.icon(icon)}</span>
+			<span class="doctor-action-copy"><strong>${label}</strong><small>${description}</small></span>
+			<span class="doctor-action-cta">${__("Open")}</span>
+		</button>`;
+	}
+
+	actionLink(route, label, icon, description) {
+		return `<a class="doctor-action" href="/desk/${route}" data-route="${route}">
+			<span class="doctor-action-mark">${this.icon(icon)}</span>
+			<span class="doctor-action-copy"><strong>${label}</strong><small>${description}</small></span>
+			<span class="doctor-action-cta">${__("Open")}</span>
+		</a>`;
 	}
 
 	icon(name) {
@@ -256,7 +277,7 @@ class DoctorDashboard {
 	setGreeting() {
 		const hour = new Date().getHours();
 		const greeting = hour < 12 ? __("Good Morning") : hour < 18 ? __("Good Afternoon") : __("Good Evening");
-		const name = frappe.boot?.user?.full_name || frappe.session?.user || __("there");
+		const name = frappe.boot?.user?.first_name || __("there");
 		this.page.main.find(".doctor-greeting").text(`${greeting}, ${name}!`);
 	}
 

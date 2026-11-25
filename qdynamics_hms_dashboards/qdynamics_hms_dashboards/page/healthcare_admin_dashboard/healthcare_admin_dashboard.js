@@ -2,6 +2,34 @@ frappe.pages["healthcare-admin-dashboard"].on_page_load = function (wrapper) {
 	new HealthcareAdminDashboard(wrapper);
 };
 
+let apexChartsPromise;
+
+function loadApexCharts() {
+	if (window.ApexCharts) return Promise.resolve(window.ApexCharts);
+	if (!apexChartsPromise) {
+		apexChartsPromise = new Promise((resolve, reject) => {
+			const script = document.createElement("script");
+			script.src = "https://cdn.jsdelivr.net/npm/apexcharts@3.49.2/dist/apexcharts.min.js";
+			script.onload = () => {
+				if (window.ApexCharts) {
+					resolve(window.ApexCharts);
+				} else {
+					reject(new Error("ApexCharts loaded without exposing its constructor."));
+				}
+			};
+			script.onerror = () => {
+				script.remove();
+				reject(new Error("ApexCharts could not be loaded."));
+			};
+			document.head.appendChild(script);
+		}).catch((error) => {
+			apexChartsPromise = null;
+			throw error;
+		});
+	}
+	return apexChartsPromise;
+}
+
 class HealthcareAdminDashboard {
 	constructor(wrapper) {
 		this.page = frappe.ui.make_app_page({
@@ -11,6 +39,8 @@ class HealthcareAdminDashboard {
 		});
 		this.startDate = null;
 		this.endDate = null;
+		this.footfallChart = null;
+		this.footfallRenderToken = 0;
 		this.addStyles();
 		this.renderShell();
 		this.mountGlobalSearch();
@@ -24,9 +54,9 @@ class HealthcareAdminDashboard {
 		const style = document.createElement("style");
 		style.id = "healthcare-admin-dashboard-styles";
 		style.textContent = `
-			.hms-dashboard { --hms-primary:#51448f; --hms-ink:#26243a; --hms-muted:#77758a; --hms-line:#ecebf2; color:var(--hms-ink); padding:22px 26px 36px; background:#f7f7fb; min-height:calc(100vh - 120px); }
+			.hms-dashboard { --hms-primary:#51448f; --hms-theme:var(--primary,var(--hms-primary)); --hms-ink:#26243a; --hms-muted:#77758a; --hms-line:#ecebf2; color:var(--hms-ink); padding:22px 26px 36px; background:#f7f7fb; min-height:calc(100vh - 120px); }
 			.hms-dashboard * { box-sizing:border-box; }
-			.hms-topbar,.hms-brand,.hms-top-actions,.hms-user,.hms-search-wrap,.hms-filter-row,.hms-presets,.hms-section-heading,.hms-actions,.hms-action,.hms-alert { display:flex; align-items:center; }
+			.hms-topbar,.hms-brand,.hms-top-actions,.hms-user,.hms-search-wrap,.hms-filter-row,.hms-presets,.hms-section-heading,.hms-action,.hms-alert { display:flex; align-items:center; }
 			.hms-topbar { justify-content:space-between; gap:20px; margin-bottom:30px; }
 			.hms-brand { gap:10px; font-size:17px; font-weight:750; letter-spacing:-.3px; white-space:nowrap; }
 			.hms-brand-mark { display:grid; place-items:center; width:36px; height:36px; color:white; border-radius:11px; background:linear-gradient(105deg,#453D89,#C8499A); font-size:20px; font-weight:800; }
@@ -75,7 +105,8 @@ class HealthcareAdminDashboard {
 			.hms-section-heading h2 { margin:0; font-size:14px; font-weight:730; }
 			.hms-section-heading span { color:#8a8799; font-size:10px; }
 			.hms-chart-wrap { min-height:205px; }
-			.hms-chart-wrap svg { display:block; width:100%; height:205px; overflow:visible; }
+			.hms-chart-wrap .apexcharts-canvas { margin-inline:auto; }
+			.hms-chart-wrap .apexcharts-svg { overflow:visible; }
 			.hms-chart-empty,.hms-loading,.hms-error { display:grid; place-items:center; min-height:155px; color:#8a8799; font-size:12px; text-align:center; }
 			.hms-bed-numbers { display:grid; grid-template-columns:repeat(3,1fr); gap:9px; margin:23px 0 17px; text-align:center; }
 			.hms-bed-number strong { display:block; margin-bottom:5px; font-size:20px; }
@@ -84,8 +115,9 @@ class HealthcareAdminDashboard {
 			.hms-meter-fill { height:100%; border-radius:inherit; background:linear-gradient(90deg,#51448f,#c8499a); }
 			.hms-bed-caption { margin:10px 0 0; color:#838092; font-size:11px; }
 			.hms-admin-bottom-grid { display:grid; grid-template-columns:minmax(0,1.45fr) minmax(280px,1fr); gap:16px; align-items:stretch; }
-			.hms-attention { display:flex; flex-direction:column; height:300px; }
+			.hms-attention,.hms-quick-actions { display:flex; flex-direction:column; height:330px; }
 			.hms-alerts { display:grid; grid-auto-rows:min-content; flex:1; min-height:0; gap:9px; align-content:start; overflow-y:auto; padding-right:4px; }
+			.hms-actions { display:grid; grid-auto-rows:min-content; gap:9px; align-content:start; }
 			.hms-alert { gap:11px; min-height:56px; padding:10px 12px; border:1px solid #f0eef4; border-radius:10px; }
 			.hms-alert-mark { display:grid; place-items:center; flex:0 0 30px; height:30px; border-radius:9px; color:#b8732f; background:#fff4e7; }
 			.hms-alert.warning .hms-alert-mark { color:#bd547a; background:#fcf0f5; }
@@ -94,13 +126,18 @@ class HealthcareAdminDashboard {
 			.hms-alert-copy strong { display:block; margin-bottom:3px; font-size:11px; }
 			.hms-alert-copy small { display:block; overflow:hidden; color:#858294; font-size:10px; text-overflow:ellipsis; white-space:nowrap; }
 			.hms-alert a { color:#685ba5; font-size:10px; font-weight:700; text-decoration:none; white-space:nowrap; }
-			.hms-actions { flex-wrap:wrap; gap:9px; }
-			.hms-action { gap:8px; min-height:38px; padding:0 12px; border:1px solid var(--hms-line); border-radius:9px; color:#514e64; background:white; font-size:11px; font-weight:650; text-decoration:none!important; }
-			.hms-action:hover { border-color:#d6d0e7; color:#51448f; background:#faf9fd; }
-			.hms-action svg { color:#776ba9; }
+			.hms-action { display:flex; align-items:center; gap:11px; min-height:56px; padding:10px 12px; border:1px solid transparent; border-radius:10px; color:#51448f; background:linear-gradient(105deg,rgba(69,61,137,.09),rgba(200,73,154,.10)) padding-box,linear-gradient(105deg,rgba(69,61,137,.30),rgba(200,73,154,.32)) border-box; box-shadow:0 3px 10px rgba(69,61,137,.08); text-decoration:none!important; transition:transform .16s,box-shadow .16s; }
+			.hms-action:hover { transform:translateY(-1px); color:#453D89; box-shadow:0 6px 15px rgba(119,70,153,.15); }
+			.hms-action:focus-visible { outline:2px solid var(--hms-theme); outline-offset:2px; }
+			.hms-action-mark { display:grid; place-items:center; flex:0 0 30px; height:30px; border-radius:9px; color:#51448f; background:linear-gradient(105deg,rgba(69,61,137,.09),rgba(200,73,154,.10)); }
+			.hms-action-mark svg { width:16px; height:16px; }
+			.hms-action-copy { flex:1; min-width:0; }
+			.hms-action-copy strong { display:block; margin-bottom:3px; font-size:11px; }
+			.hms-action-copy small { display:block; overflow:hidden; font-size:10px; text-overflow:ellipsis; white-space:nowrap; }
+			.hms-action-cta { color:#51448f; font-size:10px; font-weight:700; white-space:nowrap; }
 			.hms-dashboard-status { margin:0 0 14px; color:#bd547a; font-size:12px; }
 			@media(max-width:980px) { .hms-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); } .hms-grid { grid-template-columns:1fr 1fr; } .hms-chart-card { grid-column:1/-1; } .hms-presets { margin-left:0; } }
-			@media(max-width:650px) { .hms-dashboard { padding:15px 12px 26px; } .hms-dashboard-header { display:grid!important; grid-template-columns:minmax(15px,1fr) minmax(0,min(460px,calc(100% - 30px))) minmax(15px,1fr); } .hms-dashboard-header .standard-items-section { grid-column:3; margin-left:0; } .hms-header-search { grid-column:2; order:0; flex:0 1 auto; width:100%; max-width:460px; min-width:0; margin:0; } .hms-greeting { align-items:flex-start; flex-direction:column; gap:9px; } .hms-greeting h1 { font-size:21px; } .hms-filter-row { align-items:stretch; } .hms-filter-row label { flex:1 1 calc(50% - 8px); } .hms-filter-row input { width:100%; min-width:0; } .hms-filter-row>.hms-button { flex:1; } .hms-presets { flex-basis:100%; } .hms-kpis { gap:9px; } .hms-kpi { min-height:112px; padding:13px; } .hms-kpi-label { font-size:11px; } .hms-kpi-value { font-size:23px; } .hms-kpi-icon { width:33px; height:33px; } .hms-grid { grid-template-columns:1fr; gap:11px; } .hms-chart-card { grid-column:auto; } .hms-admin-bottom-grid { grid-template-columns:1fr; } .hms-card { padding:15px; } .hms-action { flex:1 1 calc(50% - 8px); justify-content:center; } }
+			@media(max-width:650px) { .hms-dashboard { padding:15px 12px 26px; } .hms-dashboard-header { display:grid!important; grid-template-columns:minmax(15px,1fr) minmax(0,min(460px,calc(100% - 30px))) minmax(15px,1fr); } .hms-dashboard-header .standard-items-section { grid-column:3; margin-left:0; } .hms-header-search { grid-column:2; order:0; flex:0 1 auto; width:100%; max-width:460px; min-width:0; margin:0; } .hms-greeting { align-items:flex-start; flex-direction:column; gap:9px; } .hms-greeting h1 { font-size:21px; } .hms-filter-row { align-items:stretch; } .hms-filter-row label { flex:1 1 calc(50% - 8px); } .hms-filter-row input { width:100%; min-width:0; } .hms-filter-row>.hms-button { flex:1; } .hms-presets { flex-basis:100%; } .hms-kpis { gap:9px; } .hms-kpi { min-height:112px; padding:13px; } .hms-kpi-label { font-size:11px; } .hms-kpi-value { font-size:23px; } .hms-kpi-icon { width:33px; height:33px; } .hms-grid { grid-template-columns:1fr; gap:11px; } .hms-chart-card { grid-column:auto; } .hms-admin-bottom-grid { grid-template-columns:1fr; } .hms-card { padding:15px; } }
 		`;
 		document.head.appendChild(style);
 	}
@@ -128,7 +165,7 @@ class HealthcareAdminDashboard {
 					${this.kpiCard("opdVisits", __("OPD Visits"), "patient-appointment", "calendar")}
 					${this.kpiCard("ipdAdmissions", __("IPD Admissions"), "inpatient-record", "bed")}
 					${this.kpiCard("laboratoryVisits", __("Laboratory Visits"), "lab-test", "flask")}
-					${this.kpiCard("bills", __("Today's Bills"), "sales-invoice", "receipt")}
+					${this.kpiCard("bills", __("Paid Bill Value"), "sales-invoice", "receipt")}
 				</div>
 				<div class="hms-grid">
 					<section class="hms-card hms-chart-card">
@@ -148,10 +185,10 @@ class HealthcareAdminDashboard {
 					<section class="hms-card hms-quick-actions">
 						<div class="hms-section-heading"><h2>${__("Quick Actions")}</h2><span>${__("Common admin tasks")}</span></div>
 						<div class="hms-actions">
-							${this.actionLink("hr-setup", __("HRMS"), "users")}
-							${this.actionLink("patient", __("Patients"), "patient")}
-							${this.actionLink("user", __("Add Users"), "user")}
-							${this.actionLink("sales-invoice", __("Invoices"), "receipt")}
+							${this.actionLink("hr-setup", __("HRMS"), "users", __("Manage employee records"))}
+							${this.actionLink("patient", __("Patients"), "patient", __("View patient records"))}
+							${this.actionLink("user", __("Add Users"), "user", __("Manage user access"))}
+							${this.actionLink("sales-invoice", __("Invoices"), "receipt", __("Review billing records"))}
 						</div>
 					</section>
 				</div>
@@ -179,8 +216,12 @@ class HealthcareAdminDashboard {
 		</a>`;
 	}
 
-	actionLink(route, label, icon) {
-		return `<a class="hms-action" href="/desk/${route}" data-route="${route}">${this.icon(icon)}<span>${label}</span></a>`;
+	actionLink(route, label, icon, description) {
+		return `<a class="hms-action" href="/desk/${route}" data-route="${route}">
+			<span class="hms-action-mark">${this.icon(icon)}</span>
+			<span class="hms-action-copy"><strong>${label}</strong><small>${description}</small></span>
+			<span class="hms-action-cta">${__("Open")}</span>
+		</a>`;
 	}
 
 	icon(name) {
@@ -200,7 +241,8 @@ class HealthcareAdminDashboard {
 	setGreeting() {
 		const hour = new Date().getHours();
 		const greeting = hour < 12 ? __("Good Morning") : hour < 18 ? __("Good Afternoon") : __("Good Evening");
-		this.page.main.find(".hms-greeting-title").text(`${greeting}, ${this.fullName()}!`);
+		const firstName = frappe.boot?.user?.first_name || __("there");
+		this.page.main.find(".hms-greeting-title").text(`${greeting}, ${firstName}!`);
 	}
 
 	fullName() {
@@ -298,6 +340,7 @@ class HealthcareAdminDashboard {
 
 	async loadDashboard() {
 		this.showStatus("");
+		this.clearFootfallChart();
 		this.page.main.find(".hms-range").text(`${this.startDate} – ${this.endDate}`);
 		this.page.main.find(".hms-kpi-value").text("…");
 		this.page.main.find(".hms-chart-wrap").html(`<div class="hms-loading">${__("Loading registrations...")}</div>`);
@@ -319,8 +362,15 @@ class HealthcareAdminDashboard {
 	renderDashboard(data) {
 		const { kpis } = data;
 		for (const [key, metric] of Object.entries(kpis)) {
-			this.page.main.find(`[data-kpi="${key}"]`).text(metric.restricted ? "—" : metric.value.toLocaleString());
-			const note = key === "opdVisits" ? __("Appointments created in selected date range") : __("Selected date range");
+			const displayValue = key === "bills"
+				? format_currency(Number(metric.value) || 0)
+				: metric.value.toLocaleString();
+			this.page.main.find(`[data-kpi="${key}"]`).text(metric.restricted ? "—" : displayValue);
+			const note = key === "opdVisits"
+				? __("Appointments created in selected date range")
+				: key === "bills"
+					? __("Paid amount in selected date range")
+					: __("Selected date range");
 			this.page.main.find(`[data-kpi-note="${key}"]`).text(metric.restricted ? __("Read permission required") : note);
 		}
 		this.renderFootfall(data.patientFootfall);
@@ -330,6 +380,7 @@ class HealthcareAdminDashboard {
 
 	renderFootfall(footfall) {
 		const $chart = this.page.main.find(".hms-chart-wrap");
+		this.clearFootfallChart();
 		if (footfall.restricted) {
 			$chart.html(`<div class="hms-chart-empty">${__("Patient read permission required.")}</div>`);
 			return;
@@ -339,25 +390,74 @@ class HealthcareAdminDashboard {
 			return;
 		}
 		const values = footfall.points.map((point) => Number(point.count));
-		const width = 720;
-		const height = 205;
-		const padding = { top: 16, right: 12, bottom: 30, left: 30 };
-		const max = Math.max(1, ...values);
-		const x = (index) => padding.left + index * (width - padding.left - padding.right) / Math.max(1, values.length - 1);
-		const y = (value) => padding.top + (height - padding.top - padding.bottom) * (1 - value / max);
-		const line = values.map((value, index) => `${index ? "L" : "M"}${x(index).toFixed(1)},${y(value).toFixed(1)}`).join(" ");
-		const area = `${line} L${x(values.length - 1).toFixed(1)},${height - padding.bottom} L${x(0).toFixed(1)},${height - padding.bottom} Z`;
-		const labelIndexes = [...new Set([0, Math.floor((values.length - 1) / 2), values.length - 1])];
-		const labels = labelIndexes.map((index) => {
-			const label = this.formatChartDate(footfall.points[index].date);
-			return `<text x="${x(index)}" y="${height - 6}" text-anchor="${index === 0 ? "start" : index === values.length - 1 ? "end" : "middle"}">${label}</text>`;
-		}).join("");
-		const circles = values.map((value, index) => `<circle cx="${x(index)}" cy="${y(value)}" r="3" fill="#51448f"><title>${footfall.points[index].date}: ${value}</title></circle>`).join("");
-		$chart.html(`<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${__("Patient registration trend")}">
-			<defs><linearGradient id="hms-footfall-gradient" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#7656ad" stop-opacity=".24"/><stop offset="1" stop-color="#7656ad" stop-opacity=".01"/></linearGradient></defs>
-			<path d="M${padding.left},${height - padding.bottom}H${width - padding.right}" stroke="#eeedf3" fill="none"/>
-			<path d="${area}" fill="url(#hms-footfall-gradient)"/><path d="${line}" fill="none" stroke="#67539c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-			${circles}<g fill="#898697" font-size="10">${labels}</g></svg>`);
+		const maxValue = Math.max(0, ...values);
+		const yMax = Math.max(4, Math.ceil(maxValue / 4) * 4);
+		const renderToken = this.footfallRenderToken;
+		$chart.html('<div class="hms-footfall-apex-chart"></div>');
+		const chartElement = $chart.find(".hms-footfall-apex-chart")[0];
+		loadApexCharts()
+			.then((ApexCharts) => {
+				if (renderToken !== this.footfallRenderToken || !chartElement.isConnected) return;
+				this.footfallChart = new ApexCharts(chartElement, {
+					chart: {
+						type: "line",
+						height: 205,
+						toolbar: { show: false },
+						zoom: { enabled: false },
+						animations: { enabled: false },
+						fontFamily: "inherit",
+						foreColor: "#898697",
+					},
+					series: [{ name: __("Patient registrations"), data: values }],
+					colors: ["#67539c"],
+					dataLabels: { enabled: false },
+					stroke: { curve: "straight", width: 2.5 },
+					markers: {
+						size: 4,
+						colors: ["#c8499a"],
+						strokeColors: "#fff",
+						strokeWidth: 2,
+						hover: { size: 6 },
+					},
+					grid: { borderColor: "#eeedf3", strokeDashArray: 3 },
+					xaxis: {
+						categories: footfall.points.map((point) => this.formatChartDate(point.date)),
+						labels: {
+							style: { colors: "#898697", fontSize: "10px" },
+							hideOverlappingLabels: true,
+						},
+						axisBorder: { show: true, color: "#cfcbd9" },
+						axisTicks: { show: true, color: "#cfcbd9" },
+					},
+					yaxis: {
+						min: 0,
+						max: yMax,
+						tickAmount: 4,
+						labels: {
+							style: { colors: "#898697", fontSize: "10px" },
+							formatter: (value) => Math.round(value).toLocaleString(),
+						},
+					},
+					tooltip: {
+						x: { show: true },
+						y: { formatter: (value) => value.toLocaleString() },
+					},
+				});
+				return this.footfallChart.render();
+			})
+			.catch((error) => {
+				if (renderToken !== this.footfallRenderToken || !chartElement.isConnected) return;
+				this.footfallChart?.destroy();
+				this.footfallChart = null;
+				console.error("Patient Footfall chart failed to render.", error);
+				$chart.html(`<div class="hms-error">${__("Patient Footfall chart could not be loaded. Check your connection and try again.")}</div>`);
+			});
+	}
+
+	clearFootfallChart() {
+		this.footfallRenderToken += 1;
+		this.footfallChart?.destroy();
+		this.footfallChart = null;
 	}
 
 	formatChartDate(value) {
