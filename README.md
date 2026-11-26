@@ -51,6 +51,22 @@ checks DocType permissions, and uses permission-aware queries. The app's migrati
 permission for `Frontdesk` on Patient, Patient Appointment, Lab Test, and Inpatient Record; they do
 not grant write or delete permission.
 
+### Nursing Station Dashboard
+
+The native Desk Page is available at `/desk/healthcare/nursing-station-dashboard` to users with the
+`Nursing` role. A migration creates this dashboard-only role. Users also need the existing
+`Nursing User` role for the healthcare DocType permissions used by the dashboard.
+
+The dashboard includes date-range filters, Wards, Nursing Tasks, Patients, and Admission / Discharge
+Checklist KPIs, along with Inpatient Activity, Doctors' Orders, Lab Reports, and quick links to
+HRMS (`/desk/hr-setup`), Inpatient Records, Patient Directory, and Ward Directory. Inpatient
+Activity, Doctors' Orders, and Lab Reports use fixed-height, scrollable lists. The API checks
+DocType read permissions; records and counts for Patient Encounter, Lab Test, and Nursing Checklist
+Template stay restricted unless the user's existing roles grant those permissions.
+
+The API is in `qdynamics_hms_dashboards.api.nursing_dashboard`. It enforces the `Nursing` role and
+uses permission-aware queries.
+
 ### Doctor Dashboard
 
 The native Desk Page is available at `/desk/healthcare/doctor-dashboard` to users with the `Doctor`
@@ -86,7 +102,7 @@ Before installing this app on a site, make sure the following are in place:
 - Python 3.14 or newer, as declared in `pyproject.toml`.
 - The site has Role records named exactly `Admin`, `Doctor`, and `Frontdesk`. The standard Page JSON
   files reference these roles, and the Frontdesk permission patches require the `Frontdesk` role
-  before they run.
+  before they run. The Nursing role is created by the app's pre-model-sync patch.
 - Users need DocType permissions in addition to the dashboard role:
   - Admin needs read access to Patient, Patient Appointment, Inpatient Record, Lab Test,
     Healthcare Service Unit, and Sales Invoice.

@@ -1,0 +1,15 @@
+{
+ "doctype": "Page",
+ "name": "nursing-station-dashboard",
+ "page_name": "nursing-station-dashboard",
+ "title": "Nursing Station Dashboard",
+ "module": "Qdynamics Hms Dashboards",
+ "standard": "Yes",
+ "system_page": 0,
+ "icon": "heart",
+ "roles": [
+  {
+   "role": "Nursing"
+  }
+ ]
+}
